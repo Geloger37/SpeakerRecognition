@@ -17,7 +17,8 @@ def split_meta_line(line, delimiter=' '):
     """
 
     ###########################################################
-    # Here is your code
+    
+    speaker_id, gender, file_path = line.split(delimiter)
 
     ###########################################################
 
@@ -33,7 +34,9 @@ def preemphasis(signal, pre_emphasis=0.97):
     """
 
     ###########################################################
-    # Here is your code
+    emphasized_signal = np.zeros(len(signal))
+    for i in range(len(signal)):
+        emphasized_signal[i] = signal[i] - pre_emphasis*signal[i-1]
 
     ###########################################################
 
