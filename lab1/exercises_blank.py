@@ -69,6 +69,10 @@ def framing(emphasized_signal, sample_rate=16000, frame_size=0.025, frame_stride
     ###########################################################
     # Here is your code to compute frames
 
+    window = np.hamming(frame_length)
+    frames = np.zeros(shape=(num_frames, frame_length))
+    ## TODO: continue!
+
     ###########################################################
 
     return frames
@@ -85,7 +89,8 @@ def power_spectrum(frames, NFFT=512):
     mag_frames = np.absolute(np.fft.rfft(frames, NFFT))  # Magnitude of the FFT
 
     ###########################################################
-    # Here is your code to compute pow_frames
+    
+    pow_frames = mag_frames**2
 
     ###########################################################
 
