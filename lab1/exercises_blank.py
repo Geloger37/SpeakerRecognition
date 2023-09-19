@@ -22,7 +22,7 @@ def split_meta_line(line, delimiter=' '):
 
     ###########################################################
 
-    return speaker_id, gender, file_path
+    return [speaker_id, gender, file_path]
 
 def preemphasis(signal, pre_emphasis=0.97):
     #Here you need to preemphasis input signal with pre_emphasis coeffitient
@@ -69,9 +69,13 @@ def framing(emphasized_signal, sample_rate=16000, frame_size=0.025, frame_stride
     ###########################################################
     # Here is your code to compute frames
 
-    window = np.hamming(frame_length)
+    window = np.hamming(M=frame_length)
     frames = np.zeros(shape=(num_frames, frame_length))
-    ## TODO: continue!
+
+    for i in range(num_frames):
+        start_index = i * frame_step
+        end_index = start_index + frame_length
+        frames[i] = pad_signal[start_index: end_index] * window
 
     ###########################################################
 
