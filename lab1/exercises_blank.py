@@ -116,6 +116,7 @@ def compute_fbank_filters(nfilt=40, sample_rate=16000, NFFT=512):
     ###########################################################
     # Here is your code to convert Convert Hz to Mel: 
     # high_freq -> high_freq_mel
+    high_freq_mel = 2595.0 * np.log10(1.0 + high_freq / 700.0)
     
     ###########################################################
 
@@ -124,6 +125,7 @@ def compute_fbank_filters(nfilt=40, sample_rate=16000, NFFT=512):
     ###########################################################
     # Here is your code to convert Convert Mel to Hz: 
     # mel_points -> hz_points
+    hz_points = 700.0 * (10.0 ** (mel_points / 2595.0) - 1.0)
     
     ###########################################################
 
@@ -153,6 +155,7 @@ def compute_fbanks_features(pow_frames, fbank):
     
     ###########################################################
     # Here is your code to compute filter_banks_features
+    filter_banks_features = np.dot(pow_frames, fbank.T)
     
     ###########################################################
 
@@ -173,6 +176,7 @@ def compute_mfcc(filter_banks_features, num_ceps=20):
     
     ###########################################################
     # Here is your code to compute mfcc features
+    
     
     ###########################################################
 
