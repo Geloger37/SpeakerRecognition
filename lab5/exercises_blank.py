@@ -71,26 +71,11 @@ def plot_histograms_2sets(all_scores_1, all_labels_1,
     print("Equal Error Rate {0} (EER): {1:.3f}%, threshold EER: {2:.3f} ".format(names[0], EER_1, thresh_EER_1))
     print("Equal Error Rate {0} (EER): {1:.3f}%, threshold EER: {2:.3f} ".format(names[1], EER_2, thresh_EER_2))
 
-def mean_embd_norm(test_embds, adapt_embds):
-    # Function to apply mean embedding normalization
-    
-    test_embds_adapted = {}
-    adapt_embds_list = [adapt_embds[k] for k in adapt_embds.keys()]
-    mean_embd = torch.stack(adapt_embds_list).mean(0)
-    if len(mean_embd.size()) > 1:
-        mean_embd = mean_embd.mean(0)
-
-    for k in test_embds.keys():
-        test_embds_adapted[k] = test_embds[k] - mean_embd
-    
-    return test_embds_adapted
-
 def s_norm(test_data, lines, adapt_data, N_s=200, eps=0.5):
     """
     Function to perform s-normalization for scores with the snorm_data
     :param test_data: test embeddings
     :param lines: test protocol
-    :param scores: raw scores matrix
     :param adapt_data: data for s-norm (s-norm embeddings)
     :param N_s: top N impostors scrores for s-normalization
     :param eps: epsilon for std
@@ -126,7 +111,34 @@ def s_norm(test_data, lines, adapt_data, N_s=200, eps=0.5):
     
     ###########################################################
     # Here is your code
-    
+    sorted_scores_e = (-np.sort(-cosine_similarity(E, A), axis=1))[:, :N_s]
+    sorted_scores_t = (-np.sort(-cosine_similarity(T, A), axis=1))[:, :N_s]
+
+    print(f'{sorted_scores_e.shape}')
+    print(f'{sorted_scores_t.shape}')
+
+    mean_e = sorted_scores_e.mean(axis=1)
+    mean_t = sorted_scores_t.mean(axis=1)
+    std_e = sorted_scores_e.std(axis=1) + eps
+    std_t = sorted_scores_t.std(axis=1) + eps
+
+    print(f'{mean_e.shape}')
+    print(f'{mean_t.shape}')
+    print(f'{std_e.shape}')
+    print(f'{std_t.shape}')
+
+    for line in tqdm.tqdm(lines):
+        label, enr, tst = line.strip().split()
+        all_labels.append(int(label))
+        all_trials.append(" ".join([enr, tst]))
+        _E = test_data[enr].squeeze(0).numpy().reshape(1, -1)
+        _T = test_data[tst].squeeze(0).numpy().reshape(1, -1)
+        s = cosine_similarity(_E, _T)[0][0]
+
+        s_norm = (s - mean_e[enroll_list.index(enr)])/(std_e[[enroll_list.index(enr)]]) + (s - mean_t[test_list.index(tst)])/(std_t[test_list.index(tst)])
+
+        scores_adapted.append(s_norm[0])
+        
     ###########################################################
 
     return scores_adapted, all_labels, all_trials
@@ -134,7 +146,7 @@ def s_norm(test_data, lines, adapt_data, N_s=200, eps=0.5):
 class CalibrationDataset(Dataset):
 
     def __init__(self, target_scores, impostor_scores):
-        super(CalibrationDataset, self).__init__()
+        super().__init__()
 
         self.target_scores   = target_scores
         self.impostor_scores = impostor_scores
@@ -153,7 +165,7 @@ class LinearCalibrationModel(torch.nn.Module):
     # Building of the full model for constructing the extractor of features
     
     def __init__(self):
-        super(LinearCalibrationModel, self).__init__()
+        super().__init__()
         
         self.calib_params = nn.Linear(1, 1)
 
@@ -161,6 +173,7 @@ class LinearCalibrationModel(torch.nn.Module):
         
         ###########################################################
         # Here is your code
+        calib_x = self.calib_params(x)
             
         ###########################################################
 
@@ -174,7 +187,7 @@ class CalibrationLoss(nn.Module):
         :param ptar: probability of target hypothesis
         '''
         
-        super(CalibrationLoss, self).__init__()
+        super().__init__()
         
         self.ptar  = ptar
         self.alpha = np.log(ptar/(1 - ptar))
@@ -190,6 +203,7 @@ class CalibrationLoss(nn.Module):
         
         ###########################################################
         # Here is your code
+        loss_value = self.ptar * torch.mean(negative_log_sigmoid(target_llrs - self.alpha)) + (1 - self.ptar) * torch.mean(negative_log_sigmoid(-nontarget_llrs + self.alpha))
 
         ###########################################################
 
@@ -208,6 +222,18 @@ def train_calibration(train_loader, model, criterion, optimizer, scheduler, num_
             
             ###########################################################
             # Here is your code
+            optimizer.zero_grad()
+
+            # raise Exception(f'{tar_sc.shape=}\n{imp_sc.shape=}')
+
+            new_nontarget_llrs = model(imp_sc.reshape(-1, 1))
+            new_target_llrs = model(tar_sc.reshape(-1, 1))
+
+            loss = criterion(new_target_llrs, new_nontarget_llrs)
+
+            loss.backward()
+            optimizer.step()
+
             
             ###########################################################
                             
